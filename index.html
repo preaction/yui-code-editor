@@ -37,5 +37,14 @@
 <script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/button/button-min.js"></script> 
 <script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/editor/editor-min.js"></script> 
 <script src="code-editor.js"></script>
+<script type="text/javascript">
+var myConfig = {
+        height: '700px',
+        width: '700px',
+        focusAtStart: true
+    };
+myEditor = new YAHOO.widget.CodeEditor('editor', myConfig);
+myEditor.render();
+</script>
 </body>
 </html>

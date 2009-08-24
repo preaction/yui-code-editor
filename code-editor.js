@@ -1,17 +1,34 @@
 (function() {
     var Dom = YAHOO.util.Dom,
         Event = YAHOO.util.Event,
-        Lang = YAHOO.lang,
-        myConfig = {
-            height: '700px',
-            width: '700px',
-            animate: false,
-            dompath: false,
-            focusAtStart: true
-        },
+        Lang = YAHOO.lang
+        ;
+    
+    YAHOO.widget.CodeEditor = function (id, cfg) {
+        // Disable Editor configs that don't apply
+        cfg["animate"] = false;
+        cfg["dompath"] = false;
+
+        YAHOO.widget.CodeEditor.superclass.constructor.call(this, id, cfg);
+
+        this.on('editorContentLoaded', function() {
+            var link = this._getDoc().createElement('link');
+            link.rel = "stylesheet";
+            link.type = "text/css";
+            link.href = "code.css";
+            this._getDoc().getElementsByTagName('head')[0].appendChild(link);
+            this.highlight(true);
+            if (this.browser.ie) {
+                this._getDoc().body.style.marginLeft = '';
+            }
+        }, this, true);
+        this.on('editorKeyPress', function(ev) {
+            Lang.later(100, this, this.highlight);
+        }, this, true);
+        
         //Borrowed this from CodePress: http://codepress.sourceforge.net
-        cc = '\u2009', // carret char
-        keywords = [
+        this.cc = '\u2009'; // carret char
+        this.keywords = [
             { code: /(&lt;DOCTYPE.*?--&gt.)/g, tag: '<ins>$1</ins>' }, // comments
             { code: /(&lt;[^!]*?&gt;)/g, tag: '<b>$1</b>'	}, // all tags
             { code: /(&lt;!--.*?--&gt.)/g, tag: '<ins>$1</ins>' }, // comments
@@ -24,15 +41,18 @@
             { code: /\/\*(.*?)\*\//g, tag: '<i>/*$1* /</i>' } // comments / * */
         ];
         //End Borrowed Content
+    };
+    Lang.extend( YAHOO.widget.CodeEditor, YAHOO.widget.Editor );
+    
 
 
-    YAHOO.widget.Editor.prototype._cleanIncomingHTML = function(str) {
+    YAHOO.widget.CodeEditor.prototype._cleanIncomingHTML = function(str) {
         return str;
     };
     
-    YAHOO.widget.Editor.prototype.focusCaret = function() {
+    YAHOO.widget.CodeEditor.prototype.focusCaret = function() {
         if (this.browser.gecko) {
-            if (this._getWindow().find(cc)) {
+            if (this._getWindow().find(this.cc)) {
                 this._getSelection().getRangeAt(0).deleteContents();
             }
         } else if (this.browser.opera) {
@@ -52,10 +72,10 @@
             this._selectNode(cur);
         }
     };
-    YAHOO.widget.Editor.prototype.highlight = function(focus) {
+    YAHOO.widget.CodeEditor.prototype.highlight = function(focus) {
         if (!focus) {
             if (this.browser.gecko) {
-                this._getSelection().getRangeAt(0).insertNode(this._getDoc().createTextNode(cc));
+                this._getSelection().getRangeAt(0).insertNode(this._getDoc().createTextNode(this.cc));
             } else if (this.browser.opera) {
 			    var span = this._getDoc().createElement('span');
 			    this._getWindow().getSelection().getRangeAt(0).insertNode(span);
@@ -88,8 +108,8 @@
             html = html.replace(/\n/g,'<br>');
             YAHOO.log(html);
         }
-        for (var i = 0; i < keywords.length; i++) {
-            html = html.replace(keywords[i].code, keywords[i].tag);
+        for (var i = 0; i < this.keywords.length; i++) {
+            html = html.replace(this.keywords[i].code, this.keywords[i].tag);
         }
 
         html = html.replace('!!CURSOR_HERE!!', '<span id="cur">&nbsp;|&nbsp;</span>');
@@ -99,21 +119,4 @@
             this.focusCaret();
         }
     };
-
-    myEditor = new YAHOO.widget.Editor('editor', myConfig);
-    myEditor.on('editorContentLoaded', function() {
-        var link = this._getDoc().createElement('link');
-        link.rel = "stylesheet";
-        link.type = "text/css";
-        link.href = "code.css";
-        this._getDoc().getElementsByTagName('head')[0].appendChild(link);
-        this.highlight(true);
-        if (this.browser.ie) {
-            this._getDoc().body.style.marginLeft = '';
-        }
-    }, myEditor, true);
-    myEditor.on('editorKeyPress', function(ev) {
-        Lang.later(100, this, this.highlight);
-    }, myEditor, true);
-    myEditor.render();
 })();
