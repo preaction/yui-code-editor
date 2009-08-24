@@ -112,15 +112,8 @@
             this._getDoc().body.style.marginLeft = '';
         }
     }, myEditor, true);
-    myEditor.on('editorKeyDown', function(ev) {
-        if ((ev.ev.keyCode == 13) || (ev.ev.keyCode == 9)) {
-            Lang.later(100, this, this.highlight);
-        }
-    });
     myEditor.on('editorKeyPress', function(ev) {
-        if ((ev.ev.keyCode == 32) || (ev.ev.charCode == 59) || (ev.ev.charCode == 32) || (ev.ev.keyCode == 13) || (ev.ev.charCode == 40) || (ev.ev.charCode == 123)) {
-            Lang.later(100, this, this.highlight);
-        }
+        Lang.later(100, this, this.highlight);
     }, myEditor, true);
     myEditor.render();
 })();
