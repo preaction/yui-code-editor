@@ -5,6 +5,8 @@
     <link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.7.0/build/reset-fonts-grids/reset-fonts-grids.css"> 
     <link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.7.0/build/assets/skins/sam/skin.css">
     <link rel="stylesheet" href="http://blog.davglass.com/wp-content/themes/davglass/style.css" type="text/css">
+    <link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.7.0/build/assets/skins/sam/resize.css">
+    <link type="text/css" rel="stylesheet" href="http://yui.yahooapis.com/2.7.0/build/logger/assets/skins/sam/logger.css">
     <style>
         #form1 {
             margin: 2em;
@@ -28,23 +30,41 @@
         <form method="post" action="index.php" id="form1">
         <textarea id="editor" name="editor" rows="20" cols="75"></textarea>
         </form>
+        <form method="post" action="index.php" id="form1">
+        <textarea id="editor2" name="editor2" rows="20" cols="75"></textarea>
+        </form>
     </div>
     <div id="ft">&nbsp;</div>
 </div>
+<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/yahoo-dom-event/yahoo-dom-event.js"></script>
 <script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/utilities/utilities.js"></script> 
 <script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/container/container_core-min.js"></script> 
 <script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/menu/menu-min.js"></script> 
 <script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/button/button-min.js"></script> 
+<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/element/element-min.js"></script> 
+<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/dragdrop/dragdrop-min.js"></script> 
+<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/resize/resize-min.js"></script> 
 <script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/editor/editor-min.js"></script> 
+<script type="text/javascript" src="http://yui.yahooapis.com/2.7.0/build/logger/logger-min.js"></script>
 <script src="code-editor.js"></script>
 <script type="text/javascript">
+var myLogReader = new YAHOO.widget.LogReader();
 var myConfig = {
-        height: '700px',
+        height: '200px',
         width: '700px',
-        focusAtStart: true
+        status: true,
+        resize: true
     };
 myEditor = new YAHOO.widget.CodeEditor('editor', myConfig);
 myEditor.render();
+var myConfig2 = {
+        height: '200px',
+        width: '700px',
+        focusAtStart: true,
+        resize: true
+    };
+myEditor2 = new YAHOO.widget.CodeEditor('editor2', myConfig2);
+myEditor2.render();
 </script>
 </body>
 </html>
