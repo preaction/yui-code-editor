@@ -12,18 +12,28 @@
         YAHOO.widget.CodeEditor.superclass.constructor.call(this, id, cfg);
 
         this.on('editorContentLoaded', function() {
+            // Add the code stylesheet
             var link = this._getDoc().createElement('link');
             link.rel = "stylesheet";
             link.type = "text/css";
             link.href = "code.css";
             this._getDoc().getElementsByTagName('head')[0].appendChild(link);
-            this.highlight(true);
+            // Highlight the initial value
+            this.highlight();
+            // Fix IE margin
             if (this.browser.ie) {
                 this._getDoc().body.style.marginLeft = '';
             }
+            // Setup resize
+            if ( this.status ) {
+                this._writeStatus();
+                this._setupResize();
+            }
         }, this, true);
         this.on('editorKeyPress', function(ev) {
+            // Highlight every keypress
             Lang.later(100, this, this.highlight);
+            Lang.later(100, this, this._writeStatus);
         }, this, true);
         
         //Borrowed this from CodePress: http://codepress.sourceforge.net
@@ -41,6 +51,7 @@
             { code: /\/\*(.*?)\*\//g, tag: '<i>/*$1* /</i>' } // comments / * */
         ];
         //End Borrowed Content
+
     };
     Lang.extend( YAHOO.widget.CodeEditor, YAHOO.widget.Editor );
     
@@ -49,7 +60,17 @@
     YAHOO.widget.CodeEditor.prototype._cleanIncomingHTML = function(str) {
         return str;
     };
-    
+   
+    YAHOO.widget.CodeEditor.prototype._writeStatus = function () {
+        if ( this.status ) {
+            var text = this.getEditorText();
+            this.status.innerHTML
+                = 'C: ' + text.length
+                + ' L: ' + text.split('\n').length
+                ;
+        }
+    };
+
     YAHOO.widget.CodeEditor.prototype.focusCaret = function() {
         if (this.browser.gecko) {
             if (this._getWindow().find(this.cc)) {
@@ -65,13 +86,21 @@
             sel.addRange(range);
             span.parentNode.removeChild(span);
         } else if (this.browser.webkit || this.browser.ie) {
-            this.focus();
             var cur = this._getDoc().getElementById('cur');
             cur.id = '';
             cur.innerHTML = '';
             this._selectNode(cur);
         }
     };
+
+    YAHOO.widget.CodeEditor.prototype.getEditorText
+    = function () {
+        var text = this._getDoc().body.innerHTML;
+        text = text.replace(/<br>/gi,'\n');
+        text = text.replace(/<.*?>/g,'');
+        return text;
+    };
+
     YAHOO.widget.CodeEditor.prototype.highlight = function(focus) {
         if (!focus) {
             if (this.browser.gecko) {
@@ -119,4 +148,41 @@
             this.focusCaret();
         }
     };
+
+    /**
+    * @method initAttributes
+    * @description Initializes all of the configuration attributes used to create 
+    * the editor.
+    * @param {Object} attr Object literal specifying a set of 
+    * configuration attributes used to create the editor.
+    */
+    YAHOO.widget.CodeEditor.prototype.initAttributes 
+    = function(attr) {
+        YAHOO.widget.CodeEditor.superclass.initAttributes.call(this, attr);
+        var self = this;
+        /**
+        * @attribute status 
+        * @description Toggle the display of a status line below the editor
+        * @default false
+        * @type Boolean
+        */            
+        this.setAttributeConfig('status', {
+            value: attr.status || false,
+            method: function(status) {
+                if (status && !this.status) {
+                    this.status = document.createElement('DIV');
+                    this.status.id = this.get('id') + '_status';
+                    Dom.addClass(this.status, 'dompath'); // Piggy-back on Editor's dompath
+                    this.get('element_cont').get('firstChild').appendChild(this.status);
+                    if (this.get('iframe')) {
+                        this._writeStatus();
+                    }
+                } else if (!status && this.status) {
+                    this.status.parentNode.removeChild(this.status);
+                    this.status = null;
+                }
+            }
+        });
+    };
+
 })();
