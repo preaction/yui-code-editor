@@ -9,7 +9,30 @@
         cfg["animate"] = false;
         cfg["dompath"] = false;
 
+        // Default toolbar is different
+        cfg["toolbar"] = cfg["toolbar"] || {
+            titlebar : "Code Editor",
+            buttons : []
+        };
+
         YAHOO.widget.CodeEditor.superclass.constructor.call(this, id, cfg);
+
+        // Allow us to have no buttons
+        // This will be fixed in a future version of YUI Editor
+        YAHOO.widget.Toolbar.prototype.disableAllButtons
+        = function () {
+            if (!this._buttonList) {
+                this._buttonList = [];
+            }
+            if (this.get('disabled')) {
+                return false;
+            }
+            var len = this._buttonList.length;
+            for (var i = 0; i < len; i++) {
+                this.disableButton(this._buttonList[i]);
+            }
+        };
+        // End allow us to have no buttons
 
         this.on('editorContentLoaded', function() {
             // Add the code stylesheet
@@ -53,9 +76,15 @@
         //End Borrowed Content
 
     };
-    Lang.extend( YAHOO.widget.CodeEditor, YAHOO.widget.Editor );
+    Lang.extend( YAHOO.widget.CodeEditor, YAHOO.widget.Editor, {
+        /**
+        * @property _defaultCSS
+        * @description The default CSS used in the config for 'css'. This way you can add to the config like this: { css: YAHOO.widget.SimpleEditor.prototype._defaultCSS + 'ADD MYY CSS HERE' }
+        * @type String
+        */
+        _defaultCSS: 'html { height: 95%; } body { background-color: #fff; font:13px/1.22 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small; } a, a:visited, a:hover { color: blue !important; text-decoration: underline !important; cursor: text !important; } .warning-localfile { border-bottom: 1px dashed red !important; } .yui-busy { cursor: wait !important; } img.selected { border: 2px dotted #808080; } img { cursor: pointer !important; border: none; } body.ptags.webkit div { margin: 11px 0; }',
+    });
     
-
 
     YAHOO.widget.CodeEditor.prototype._cleanIncomingHTML = function(str) {
         return str;
@@ -68,6 +97,36 @@
                 = 'C: ' + text.length
                 + ' L: ' + text.split('\n').length
                 ;
+        }
+    };
+
+    /**
+    * @private
+    * @method _setupResize
+    * @description Creates the Resize instance and binds its events.
+    */
+    YAHOO.widget.CodeEditor.prototype._setupResize 
+    = function() {
+        if (!YAHOO.util.DD || !YAHOO.util.Resize) { return false; }
+        if (this.get('resize')) {
+            var config = {};
+            Lang.augmentObject(config, this._resizeConfig); //Break the config reference
+            this.resize = new YAHOO.util.Resize(this.get('element_cont').get('element'), config);
+            this.resize.on('resize', function(args) {
+                var anim = this.get('animate');
+                this.set('animate', false);
+                this.set('width', args.width + 'px');
+                var h = args.height,
+                    th = (this.toolbar.get('element').clientHeight + 2),
+                    dh = 0;
+                if (this.status) {
+                    dh = (this.status.clientHeight + 1); //It has a 1px top border..
+                }
+                var newH = (h - th - dh);
+                this.set('height', newH + 'px');
+                this.get('element_cont').setStyle('height', '');
+                this.set('animate', anim);
+            }, this, true);
         }
     };
 
@@ -186,3 +245,4 @@
     };
 
 })();
+
