@@ -89,6 +89,15 @@
     YAHOO.widget.CodeEditor.prototype._cleanIncomingHTML = function(str) {
         return str;
     };
+
+    /* Override to fix problem with the rest of what the normal _handleFormSubmit does 
+     * ( it doesn't properly click the correct submit button )
+     */
+    YAHOO.widget.CodeEditor.prototype._handleFormSubmit = function () {
+        this.saveHTML();
+        return;
+    };
+    /* End override to fix problem */
    
     YAHOO.widget.CodeEditor.prototype._writeStatus = function () {
         if ( this.status ) {
