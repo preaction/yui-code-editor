@@ -134,7 +134,7 @@
         if (!html) { 
             html = this.getEditorHTML();
         }
-        //html = html.replace(/<br>/gi,'\n');
+        html = html.replace(/<br>/gi,'\n');
         html = html.replace(/<.*?>/g,'');
         return html;
     };
