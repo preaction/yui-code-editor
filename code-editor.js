@@ -39,7 +39,7 @@
             var link = this._getDoc().createElement('link');
             link.rel = "stylesheet";
             link.type = "text/css";
-            link.href = "code.css";
+            link.href = this.get('css_url');
             this._getDoc().getElementsByTagName('head')[0].appendChild(link);
             // Highlight the initial value
             this.highlight();
@@ -129,6 +129,15 @@
             }, this, true);
         }
     };
+    
+    YAHOO.widget.CodeEditor.prototype.cleanHTML = function (html) {
+        if (!html) { 
+            html = this.getEditorHTML();
+        }
+        //html = html.replace(/<br>/gi,'\n');
+        html = html.replace(/<.*?>/g,'');
+        return html;
+    };
 
     YAHOO.widget.CodeEditor.prototype.focusCaret = function() {
         if (this.browser.gecko) {
@@ -154,10 +163,7 @@
 
     YAHOO.widget.CodeEditor.prototype.getEditorText
     = function () {
-        var text = this._getDoc().body.innerHTML;
-        text = text.replace(/<br>/gi,'\n');
-        text = text.replace(/<.*?>/g,'');
-        return text;
+        return this.cleanHTML( this.getEditorHTML() );
     };
 
     YAHOO.widget.CodeEditor.prototype.highlight = function(focus) {
@@ -168,7 +174,7 @@
 			    var span = this._getDoc().createElement('span');
 			    this._getWindow().getSelection().getRangeAt(0).insertNode(span);
             } else if (this.browser.webkit || this.browser.ie) {
-                this.execCommand('inserthtml', '<span id="cur"></span>');
+                this.execCommand('inserthtml', '!!CURSOR_HERE!!');
             }
         }
         var html = '';
@@ -177,7 +183,6 @@
 		    html = html.replace(/<(?!span|\/span|br).*?>/gi,'');
         } else if (this.browser.webkit) {
             //YAHOO.log('1: ' + html);
-            html = html.replace(/<span id="cur"><\/span>/ig, '!!CURSOR_HERE!!');
             html = html.replace(/<\/div>/ig, '');
             html = html.replace(/<br><div>/ig, '<br>');
             html = html.replace(/<div>/ig, '<br>');
@@ -187,14 +192,13 @@
             //YAHOO.log('2: ' + html);
         } else {
             if (this.browser.ie) {
-                html = html.replace(/<SPAN id=cur><\/SPAN>/ig, '!!CURSOR_HERE!!');
                 html = html.replace(/<SPAN id=""><\/SPAN>/ig, '');
             }
-            YAHOO.log(html);
+            //YAHOO.log(html);
             html = html.replace(/<br>/gi,'\n');
             html = html.replace(/<.*?>/g,'');
             html = html.replace(/\n/g,'<br>');
-            YAHOO.log(html);
+            //YAHOO.log(html);
         }
         for (var i = 0; i < this.keywords.length; i++) {
             html = html.replace(this.keywords[i].code, this.keywords[i].tag);
@@ -242,6 +246,15 @@
                 }
             }
         });
+        /**
+        * @attribute css_url 
+        * @description The URL to the CSS file for the inside of the code editor
+        * @default 'code.css'
+        * @type String
+        */            
+        this.setAttributeConfig('css_url', {
+            value: attr.css_url || 'code.css'
+        } );
     };
 
 })();
