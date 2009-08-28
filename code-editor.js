@@ -54,6 +54,11 @@
             }
         }, this, true);
         this.on('editorKeyPress', function(ev) {
+            // Don't highlight arrows
+            // Gets around a problem with opera moving the cursor to the wrong place
+            if ( ev.ev.keyCode >= 37 && ev.ev.keyCode <= 40 ) {
+                return;
+            }
             // Highlight every keypress
             Lang.later(100, this, this.highlight);
             Lang.later(100, this, this._writeStatus);
@@ -154,14 +159,17 @@
                 this._getSelection().getRangeAt(0).deleteContents();
             }
         } else if (this.browser.opera) {
-            var sel = this._getWindow().getSelection();
+            // This causes more problems than it solves, if it solves anything
+            // The cursor still moves to the top though
+            /*var sel = this._getWindow().getSelection();
             var range = this._getDoc().createRange();
             var span = this._getDoc().getElementsByTagName('span')[0];
                 
-            range.selectNode(span);
+            /*range.selectNode(span);
             sel.removeAllRanges();
             sel.addRange(range);
             span.parentNode.removeChild(span);
+            */
         } else if (this.browser.webkit || this.browser.ie) {
             var cur = this._getDoc().getElementById('cur');
             cur.id = '';
@@ -180,8 +188,8 @@
             if (this.browser.gecko) {
                 this._getSelection().getRangeAt(0).insertNode(this._getDoc().createTextNode(this.cc));
             } else if (this.browser.opera) {
-			    var span = this._getDoc().createElement('span');
-			    this._getWindow().getSelection().getRangeAt(0).insertNode(span);
+                var span = this._getDoc().createElement('span');
+                this._getWindow().getSelection().getRangeAt(0).insertNode(span);
             } else if (this.browser.webkit || this.browser.ie) {
                 this.execCommand('inserthtml', '!!CURSOR_HERE!!');
             }
