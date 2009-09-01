@@ -177,6 +177,10 @@
         if ( this.browser.opera ) {
             return;
         }
+        // Firefox < 3 support is not working yet
+        if ( this.browser.gecko <= 1.8 ) {
+            return;
+        }
 
         if (!focus) {
             if (this.browser.gecko) {
