@@ -56,7 +56,9 @@
             // Don't highlight arrows or modifiers
             if ( ( ev.ev.keyCode > 36 && ev.ev.keyCode < 41 )
                 || ev.ev.keyCode == 16 || ev.ev.keyCode == 17 
-                || ev.ev.keyCode == 18 || ev.ev.keyCode == 91 ) {
+                || ev.ev.keyCode == 18 || ev.ev.keyCode == 91 // Safari "command"
+                || ev.ev.keyCode == 224 // Firefox "command"
+                ) {
                 return;
             }
 
