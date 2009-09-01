@@ -42,10 +42,8 @@
             link.href = this.get('css_url');
             this._getDoc().getElementsByTagName('head')[0].appendChild(link);
             // Highlight the initial value
-            this.highlight();
-            // Fix IE margin
-            if (this.browser.ie) {
-                this._getDoc().body.style.marginLeft = '';
+            if ( !this.browser.ie ) { // IE puts "!!CURSOR HERE!!" in the main doc, not the iframe...
+                this.highlight(false);
             }
             // Setup resize
             if ( this.status ) {
@@ -53,14 +51,9 @@
                 this._setupResize();
             }
         }, this, true);
-        this.on('editorKeyPress', function(ev) {
-            // Don't highlight arrows
-            // Gets around a problem with opera moving the cursor to the wrong place
-            if ( ev.ev.keyCode >= 37 && ev.ev.keyCode <= 40 ) {
-                return;
-            }
+        this.on('editorKeyUp', function(ev) {
             // Highlight every keypress
-            Lang.later(100, this, this.highlight);
+            Lang.later(10, this, this.highlight);
             Lang.later(100, this, this._writeStatus);
         }, this, true);
         
@@ -72,10 +65,10 @@
             { code: /(&lt;!--.*?--&gt.)/g, tag: '<ins>$1</ins>' }, // comments
             { code: /\b(YAHOO|widget|util|Dom|Event|lang)\b/g, tag: '<cite>$1</cite>' }, // reserved words
             { code: /\b(break|continue|do|for|new|this|void|case|default|else|function|return|typeof|while|if|label|switch|var|with|catch|boolean|int|try|false|throws|null|true|goto)\b/g, tag: '<b>$1</b>' }, // reserved words
-            { code: /\"(.*?)(\"|<br>|<\/P>)/g, tag: '<s>"$1$2</s>' }, // strings double quote
-            { code: /\'(.*?)(\'|<br>|<\/P>)/g, tag: '<s>\'$1$2</s>' }, // strings single quote
+            { code: /\"(.*?)(\"|<br>|<\/P>)/gi, tag: '<s>"$1$2</s>' }, // strings double quote
+            { code: /\'(.*?)(\'|<br>|<\/P>)/gi, tag: '<s>\'$1$2</s>' }, // strings single quote
             { code: /\b(alert|isNaN|parent|Array|parseFloat|parseInt|blur|clearTimeout|prompt|prototype|close|confirm|length|Date|location|Math|document|element|name|self|elements|setTimeout|navigator|status|String|escape|Number|submit|eval|Object|event|onblur|focus|onerror|onfocus|onclick|top|onload|toString|onunload|unescape|open|valueOf|window|onmouseover|innerHTML)\b/g, tag: '<u>$1</u>' }, // special words
-            { code: /([^:]|^)\/\/(.*?)(<br|<\/P)/g, tag: '$1<i>//$2</i>$3' }, // comments //
+            { code: /([^:]|^)\/\/(.*?)(<br|<\/P)/gi, tag: '$1<i>//$2</i>$3' }, // comments //
             { code: /\/\*(.*?)\*\//g, tag: '<i>/*$1* /</i>' } // comments / * */
         ];
         //End Borrowed Content
@@ -92,6 +85,8 @@
     
 
     YAHOO.widget.CodeEditor.prototype._cleanIncomingHTML = function(str) {
+        // &nbsp; before <br> for IE7 so lines show up correctly
+        str = str.replace(/\r?\n/g, "&nbsp;<br>");
         return str;
     };
 
@@ -109,7 +104,7 @@
             var text = this.getEditorText();
             this.status.innerHTML
                 = 'C: ' + text.length
-                + ' L: ' + text.split('\n').length
+                + ' L: ' + text.split(/\r?\n/).length
                 ;
         }
     };
@@ -148,8 +143,11 @@
         if (!html) { 
             html = this.getEditorHTML();
         }
-        html = html.replace(/<br>/gi,'\n');
-        html = html.replace(/<.*?>/g,'');
+        html = html.replace(/&nbsp;/g," ");
+        html = html.replace(/ ?<br>/gi,'\n');
+        html = html.replace(/<[^>]+>/g,'');
+        // Remove spaces at end of lines
+        html = html.replace(/ +\r?\n/g,"");
         return html;
     };
 
@@ -158,23 +156,13 @@
             if (this._getWindow().find(this.cc)) {
                 this._getSelection().getRangeAt(0).deleteContents();
             }
-        } else if (this.browser.opera) {
-            // This causes more problems than it solves, if it solves anything
-            // The cursor still moves to the top though
-            /*var sel = this._getWindow().getSelection();
-            var range = this._getDoc().createRange();
-            var span = this._getDoc().getElementsByTagName('span')[0];
-                
-            /*range.selectNode(span);
-            sel.removeAllRanges();
-            sel.addRange(range);
-            span.parentNode.removeChild(span);
-            */
-        } else if (this.browser.webkit || this.browser.ie) {
+        } else if (this.browser.webkit || this.browser.ie || this.browser.opera) {
             var cur = this._getDoc().getElementById('cur');
-            cur.id = '';
-            cur.innerHTML = '';
-            this._selectNode(cur);
+            if ( cur ) {
+                cur.id = '';
+                cur.innerHTML = '';
+                this._selectNode(cur);
+            }
         }
     };
 
@@ -184,44 +172,54 @@
     };
 
     YAHOO.widget.CodeEditor.prototype.highlight = function(focus) {
+
+        // Opera support is not working yet
+        if ( this.browser.opera ) {
+            return;
+        }
+
         if (!focus) {
             if (this.browser.gecko) {
                 this._getSelection().getRangeAt(0).insertNode(this._getDoc().createTextNode(this.cc));
-            } else if (this.browser.opera) {
-                var span = this._getDoc().createElement('span');
-                this._getWindow().getSelection().getRangeAt(0).insertNode(span);
-            } else if (this.browser.webkit || this.browser.ie) {
-                this.execCommand('inserthtml', '!!CURSOR_HERE!!');
+            } else if (this.browser.webkit || this.browser.ie || this.browser.opera) {
+                try {
+                    this.execCommand('inserthtml', '!!CURSOR_HERE!!');
+                }
+                catch (e) {}
             }
         }
         var html = '';
         html = this._getDoc().body.innerHTML;
-        if (this.browser.opera) {
-		    html = html.replace(/<(?!span|\/span|br).*?>/gi,'');
-        } else if (this.browser.webkit) {
+        //if (this.browser.opera) {
+        //    html = html.replace(/<(?!span|\/span|br).*?>/gi,'');
+        //} else
+        if (this.browser.webkit) {
             //YAHOO.log('1: ' + html);
             html = html.replace(/<\/div>/ig, '');
             html = html.replace(/<br><div>/ig, '<br>');
             html = html.replace(/<div>/ig, '<br>');
             html = html.replace(/<br>/ig,'\n');
             html = html.replace(/<.*?>/g,'');
-            html = html.replace(/\n/g,'<br>');
+            html = html.replace(/\r?\n/g,'<br>');
             //YAHOO.log('2: ' + html);
         } else {
             if (this.browser.ie) {
-                html = html.replace(/<SPAN id=""><\/SPAN>/ig, '');
+                html = html.replace(/<SPAN><\/SPAN>/ig, '');
             }
-            //YAHOO.log(html);
-            html = html.replace(/<br>/gi,'\n');
-            html = html.replace(/<.*?>/g,'');
-            html = html.replace(/\n/g,'<br>');
-            //YAHOO.log(html);
+            YAHOO.log(html);
+            // &nbsp; before <br> for IE7
+            html = html.replace(/(&nbsp;|!!CURSOR_HERE!!)?<br[^>]*>/gi,'$1\n');
+            html = html.replace(/<[^>]*>/g,'');
+            html = html.replace(/\r?\n/g,'<br>');
+            // &nbsp; between <br> for IE6
+            html = html.replace(/<br[^>]*>(!!CURSOR_HERE!!)?<br[^>]*>/gi, '<br>$1&nbsp;<br>');
+            YAHOO.log(html);
         }
         for (var i = 0; i < this.keywords.length; i++) {
             html = html.replace(this.keywords[i].code, this.keywords[i].tag);
         }
-
-        html = html.replace('!!CURSOR_HERE!!', '<span id="cur">&nbsp;|&nbsp;</span>');
+        YAHOO.log("AFTER HIGHLIGHT:" + html);
+        html = html.replace('!!CURSOR_HERE!!', '<span id="cur">|</span>');
 
         this._getDoc().body.innerHTML = html;
         if (!focus) {
