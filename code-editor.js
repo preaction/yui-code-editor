@@ -52,6 +52,18 @@
             }
         }, this, true);
         this.on('editorKeyUp', function(ev) {
+
+            // Don't highlight arrows or modifiers
+            if ( ( ev.ev.keyCode > 36 && ev.ev.keyCode < 41 )
+                || ev.ev.keyCode == 16 || ev.ev.keyCode == 17 
+                || ev.ev.keyCode == 18 || ev.ev.keyCode == 91 ) {
+                return;
+            }
+
+            // TODO: Don't re-highlight if there is a selection
+            // That is the problem we're trying to avoid with disabling
+            // highlighting for arrows and modifiers
+
             // Highlight every keypress
             Lang.later(10, this, this.highlight);
             Lang.later(100, this, this._writeStatus);
@@ -178,7 +190,7 @@
             return;
         }
         // Firefox < 3 support is not working yet
-        if ( this.browser.gecko <= 1.8 ) {
+        if ( this.browser.gecko && this.browser.gecko <= 1.8 ) {
             return;
         }
 
