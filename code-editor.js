@@ -42,33 +42,28 @@
             link.href = this.get('css_url');
             this._getDoc().getElementsByTagName('head')[0].appendChild(link);
             // Highlight the initial value
-            if ( !this.browser.ie ) { // IE puts "!!CURSOR HERE!!" in the main doc, not the iframe...
-                this.highlight(false);
+            if ( this.getEditorText() != this.old_text ) {
+                Lang.later(10, this, function () { this.highlight(true) } );
+                if ( this.status ) {
+                    Lang.later(100, this, this._writeStatus);
+                }
+                this.old_text = this.getEditorText();
             }
             // Setup resize
             if ( this.status ) {
-                this._writeStatus();
                 this._setupResize();
             }
         }, this, true);
+
         this.on('editorKeyUp', function(ev) {
-
-            // Don't highlight arrows or modifiers
-            if ( ( ev.ev.keyCode > 36 && ev.ev.keyCode < 41 )
-                || ev.ev.keyCode == 16 || ev.ev.keyCode == 17 
-                || ev.ev.keyCode == 18 || ev.ev.keyCode == 91 // Safari "command"
-                || ev.ev.keyCode == 224 // Firefox "command"
-                ) {
-                return;
+            // Highlight only if content has changed
+            if ( this.getEditorText() != this.old_text ) {
+                Lang.later(10, this, this.highlight);
+                if ( this.status ) {
+                    Lang.later(100, this, this._writeStatus);
+                }
+                this.old_text = this.getEditorText();
             }
-
-            // TODO: Don't re-highlight if there is a selection
-            // That is the problem we're trying to avoid with disabling
-            // highlighting for arrows and modifiers
-
-            // Highlight every keypress
-            Lang.later(10, this, this.highlight);
-            Lang.later(100, this, this._writeStatus);
         }, this, true);
         
         //Borrowed this from CodePress: http://codepress.sourceforge.net
@@ -97,10 +92,19 @@
         _defaultCSS: 'html { height: 95%; } body { background-color: #fff; font:13px/1.22 arial,helvetica,clean,sans-serif;*font-size:small;*font:x-small; } a, a:visited, a:hover { color: blue !important; text-decoration: underline !important; cursor: text !important; } .warning-localfile { border-bottom: 1px dashed red !important; } .yui-busy { cursor: wait !important; } img.selected { border: 2px dotted #808080; } img { cursor: pointer !important; border: none; } body.ptags.webkit div { margin: 11px 0; }'
     });
     
-
     YAHOO.widget.CodeEditor.prototype._cleanIncomingHTML = function(str) {
-        // &nbsp; before <br> for IE7 so lines show up correctly
-        str = str.replace(/\r?\n/g, "&nbsp;<br>");
+        // Workaround for bug in Lang.substitute
+        str = str.replace(/{/gi, 'RIGHT_BRACKET');
+        str = str.replace(/}/gi, 'LEFT_BRACKET');
+
+        // &nbsp; before <br> for IE8 so lines show up correctly
+        if ( this.browser.ie && this.browser.ie <= 8 ) {
+            str = str.replace(/\r?\n/g, "&nbsp;<br>");
+        }
+
+        // Fix tabs into softtabs
+        str = str.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;'); // TODO: Make softtabs configurable
+
         return str;
     };
 
@@ -157,11 +161,18 @@
         if (!html) { 
             html = this.getEditorHTML();
         }
+        html = html.replace(/(&nbsp;){4}/g,"\t");   // TODO: make softtabs configurable
         html = html.replace(/&nbsp;/g," ");
-        html = html.replace(/ ?<br>/gi,'\n');
-        html = html.replace(/<[^>]+>/g,'');
         // Remove spaces at end of lines
-        html = html.replace(/ +\r?\n/g,"");
+        html = html.replace(/\s ?<br>/gi,'\n');
+        html = html.replace(/<[^>]+>/g,'');
+
+        // If, after all this, we are left with only a \n, user didn't add anything
+        //      (editor adds a <br> if it starts blank)
+        if ( html == "\n" ) {
+            html = "";
+        }
+
         return html;
     };
 
@@ -201,7 +212,7 @@
                 this._getSelection().getRangeAt(0).insertNode(this._getDoc().createTextNode(this.cc));
             } else if (this.browser.webkit || this.browser.ie || this.browser.opera) {
                 try {
-                    this.execCommand('inserthtml', '!!CURSOR_HERE!!');
+                    this.execCommand('inserthtml', this.cc);
                 }
                 catch (e) {}
             }
@@ -217,7 +228,7 @@
             html = html.replace(/<br><div>/ig, '<br>');
             html = html.replace(/<div>/ig, '<br>');
             html = html.replace(/<br>/ig,'\n');
-            html = html.replace(/<.*?>/g,'');
+            html = html.replace(/<[^>]*>/g,'');
             html = html.replace(/\r?\n/g,'<br>');
             //YAHOO.log('2: ' + html);
         } else {
@@ -226,18 +237,24 @@
             }
             YAHOO.log(html);
             // &nbsp; before <br> for IE7
-            html = html.replace(/(&nbsp;|!!CURSOR_HERE!!)?<br[^>]*>/gi,'$1\n');
+            html = html.replace(/(&nbsp;)?<br[^>]*>/gi,'$1\n');
+            html = html.replace(/<\/div>/ig, '');
+            html = html.replace(/<br><div>/ig, '<br>');
+            html = html.replace(/<div>/ig, '<br>');
+            html = html.replace(/<br>/ig,'\n');
             html = html.replace(/<[^>]*>/g,'');
             html = html.replace(/\r?\n/g,'<br>');
             // &nbsp; between <br> for IE6
-            html = html.replace(/<br[^>]*>(!!CURSOR_HERE!!)?<br[^>]*>/gi, '<br>$1&nbsp;<br>');
+            html = html.replace(/<br[^>]*><br[^>]*>/gi, '<br>$1&nbsp;<br>');
             YAHOO.log(html);
         }
         for (var i = 0; i < this.keywords.length; i++) {
             html = html.replace(this.keywords[i].code, this.keywords[i].tag);
         }
         YAHOO.log("AFTER HIGHLIGHT:" + html);
-        html = html.replace('!!CURSOR_HERE!!', '<span id="cur">|</span>');
+        if ( !this.browser.gecko ) {
+            html = html.replace(this.cc, '<span id="cur">|</span>');
+        }
 
         this._getDoc().body.innerHTML = html;
         if (!focus) {
